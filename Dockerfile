@@ -20,7 +20,7 @@ RUN echo "===> Installing python, sudo, and supporting tools..."  && \
     apt-get install -y                     \
         python3 python3-setuptools python3-psutil python3-bottle python3-requests libzbar-dev libzbar0 \
         python3-yaml sudo sshpass  curl gcc python3-pip python3-dev libffi-dev libssl-dev genisoimage unrar-free \
-        libxml2-dev libxslt-dev apache2 && \
+        libxml2-dev libxslt-dev apache2  apache2-utils systemd-cron && \
     apt-get -y --purge remove python-cffi          && \
     echo "===> Installing Ansible..."   && \
     pip3 install ansible                 && \
@@ -88,8 +88,15 @@ COPY <<EOF /var/spool/cron/crontabs/root
 # For more information see the manual pages of crontab(5) and cron(8)
 #
 # m h  dom mon dow   command
-
-# TEST DE FICHIER CRON
+# Example of job definition:
+# .---------------- minute (0 - 59)
+# |  .------------- hour (0 - 23)
+# |  |  .---------- day of month (1 - 31)
+# |  |  |  .------- month (1 - 12) OR jan,feb,mar,apr ...
+# |  |  |  |  .---- day of week (0 - 6) (Sunday=0 or 7) OR sun,mon,tue,wed,thu,fri,sat
+# |  |  |  |  |
+# *  *  *  *  *  user command to be executed
+*/15 * * * * ansible -m setup --tree /tmp/ansible-cmdb/out/ all;ansible-cmdb /tmp/ansible-cmdb/out > /var/www/html/$DIRECTORY/index.html 2> /var/log/cmdb-contab-`date +'%m%d%Y-%H%M'`.log
 
 EOF
 
@@ -100,4 +107,6 @@ ONBUILD  RUN  \
               ansible -c local -m setup all
 
 # default command: display Ansible-cmdb version
-CMD [ "ansible-cmdb", "--version" ]
+#CMD [ "ansible-cmdb", "--version" ]
+CMD [ "apache2ctl", "-D", "FOREGROUND" ]
+EXPOSE 80/tcp
